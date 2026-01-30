@@ -1,11 +1,27 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "kranthi8563/jenkins-demo"
-    }
-
     stages {
+
+        stage('Environment Info') {
+            steps {
+                sh '''
+                  echo "=== BASIC SYSTEM INFO ==="
+                  whoami
+                  hostname
+                  uname -a
+
+                  echo "=== WORKSPACE INFO ==="
+                  pwd
+                  echo "WORKSPACE=$WORKSPACE"
+                  ls -la
+
+                  echo "=== TOOL VERSIONS ==="
+                  java -version
+                  mvn -version
+                '''
+            }
+        }
 
         stage('Checkout') {
             steps {
@@ -29,21 +45,11 @@ pipeline {
                 sh 'mvn package -DskipTests'
             }
         }
-
-        stage('Docker Build') {
-            steps {
-                sh '''
-                  docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
-                  docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest
-                '''
-            }
-        }
     }
 
     post {
         success {
             archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            echo "Docker image built: $IMAGE_NAME:${BUILD_NUMBER}"
         }
     }
 }
