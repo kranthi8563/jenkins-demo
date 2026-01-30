@@ -19,6 +19,7 @@ pipeline {
                   echo "=== TOOL VERSIONS ==="
                   java -version
                   mvn -version
+                  docker --version
                 '''
             }
         }
@@ -45,11 +46,21 @@ pipeline {
                 sh 'mvn package -DskipTests'
             }
         }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                  docker build -t jenkins-demo:${BUILD_NUMBER} .
+                  docker tag jenkins-demo:${BUILD_NUMBER} jenkins-demo:latest
+                '''
+            }
+        }
     }
 
     post {
         success {
             archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            echo "Docker image built: jenkins-demo:${BUILD_NUMBER}"
         }
     }
 }
