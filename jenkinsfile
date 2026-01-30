@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -12,18 +13,34 @@ pipeline {
             steps {
                 sh 'mvn clean test'
             }
+            post {
+                always {
+                    // Publish JUnit test results (even if tests fail)
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn package -DskipTests'
+            }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline finished'
-        }
         success {
-            echo 'Build SUCCESS'
+            // Archive the built JAR so you can download it from Jenkins
+            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            echo 'Artifacts archived successfully'
         }
+
         failure {
-            echo 'Build FAILED'
+            echo 'Pipeline failed — check logs'
+        }
+
+        always {
+            echo "Build #${env.BUILD_NUMBER} finished"
         }
     }
 }
