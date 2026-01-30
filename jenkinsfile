@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "kranthi8563/jenkins-demo"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -15,7 +19,6 @@ pipeline {
             }
             post {
                 always {
-                    // Publish JUnit test results (even if tests fail)
                     junit 'target/surefire-reports/*.xml'
                 }
             }
@@ -26,21 +29,21 @@ pipeline {
                 sh 'mvn package -DskipTests'
             }
         }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                  docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
+                  docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest
+                '''
+            }
+        }
     }
 
     post {
         success {
-            // Archive the built JAR so you can download it from Jenkins
             archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            echo 'Artifacts archived successfully'
-        }
-
-        failure {
-            echo 'Pipeline failed — check logs'
-        }
-
-        always {
-            echo "Build #${env.BUILD_NUMBER} finished"
+            echo "Docker image built: $IMAGE_NAME:${BUILD_NUMBER}"
         }
     }
 }
