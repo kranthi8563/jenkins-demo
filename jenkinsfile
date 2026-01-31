@@ -3,41 +3,9 @@ pipeline {
 
     stages {
 
-        stage('Environment Info') {
-            steps {
-                sh '''
-                  echo "=== BASIC SYSTEM INFO ==="
-                  whoami
-                  hostname
-                  uname -a
-
-                  echo "=== WORKSPACE INFO ==="
-                  pwd
-                  echo "WORKSPACE=$WORKSPACE"
-                  ls -la
-
-                  echo "=== TOOL VERSIONS ==="
-                  java -version
-                  mvn -version
-                  docker --version
-                '''
-            }
-        }
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build & Test') {
             steps {
                 sh 'mvn clean test'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
             }
         }
 
@@ -51,16 +19,27 @@ pipeline {
             steps {
                 sh '''
                   docker build -t jenkins-demo:${BUILD_NUMBER} .
-                  docker tag jenkins-demo:${BUILD_NUMBER} jenkins-demo:latest
                 '''
             }
         }
-    }
 
-    post {
-        success {
-            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            echo "Docker image built: jenkins-demo:${BUILD_NUMBER}"
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker tag jenkins-demo:${BUILD_NUMBER} kranthireddy8563/jenkins-demo:${BUILD_NUMBER}
+                      docker tag jenkins-demo:${BUILD_NUMBER} kranthireddy8563/jenkins-demo:latest
+                      docker push kranthireddy8563/jenkins-demo:${BUILD_NUMBER}
+                      docker push kranthireddy8563/jenkins-demo:latest
+                      docker logout
+                    '''
+                }
+            }
         }
     }
 }
