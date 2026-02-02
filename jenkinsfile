@@ -1,19 +1,63 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "kranthireddy8563/jenkins-demo"
+        IMAGE_TAG  = "build-${BUILD_NUMBER}"
+    }
+
     stages {
 
+<<<<<<< HEAD
+=======
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+>>>>>>> faeed8f (updated files)
         stage('Build & Test') {
             steps {
                 sh 'mvn clean test'
             }
+<<<<<<< HEAD
+=======
         }
 
-        stage('Package') {
+        stage('Build Docker Image') {
             steps {
-                sh 'mvn package -DskipTests'
+                sh '''
+                  docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                  docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+                '''
             }
         }
+
+        stage('Push Image') {
+            steps {
+                withDockerRegistry(
+                  credentialsId: 'dockerhub-creds',
+                  url: ''
+                ) {
+                    sh '''
+                      docker push $IMAGE_NAME:$IMAGE_TAG
+                      docker push $IMAGE_NAME:latest
+                    '''
+                }
+            }
+>>>>>>> faeed8f (updated files)
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                  kubectl set image deployment/jenkins-demo-deployment \
+                    jenkins-demo=$IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
+        }
+<<<<<<< HEAD
 
         stage('Docker Build') {
             steps {
@@ -41,6 +85,8 @@ pipeline {
                 }
             }
         }
+=======
+>>>>>>> faeed8f (updated files)
     }
 }
 

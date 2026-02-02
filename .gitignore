@@ -1,0 +1,10 @@
+# Build output
+target/
+
+# Kubernetes / tooling binaries
+kubectl
+minikube*
+*.bin
+
+# OS / executables
+*.exe
