@@ -8,62 +8,36 @@ pipeline {
 
     stages {
 
-<<<<<<< HEAD
-=======
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
->>>>>>> faeed8f (updated files)
         stage('Build & Test') {
             steps {
                 sh 'mvn clean test'
             }
-<<<<<<< HEAD
-=======
         }
 
-        stage('Build Docker Image') {
+        stage('Package') {
             steps {
-                sh '''
-                  docker build -t $IMAGE_NAME:$IMAGE_TAG .
-                  docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
-                '''
+                sh 'mvn package -DskipTests'
             }
         }
-
-        stage('Push Image') {
-            steps {
-                withDockerRegistry(
-                  credentialsId: 'dockerhub-creds',
-                  url: ''
-                ) {
-                    sh '''
-                      docker push $IMAGE_NAME:$IMAGE_TAG
-                      docker push $IMAGE_NAME:latest
-                    '''
-                }
-            }
->>>>>>> faeed8f (updated files)
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh '''
-                  kubectl set image deployment/jenkins-demo-deployment \
-                    jenkins-demo=$IMAGE_NAME:$IMAGE_TAG
-                '''
-            }
-        }
-<<<<<<< HEAD
 
         stage('Docker Build') {
             steps {
-                sh '''
-                  docker build -t jenkins-demo:${BUILD_NUMBER} .
-                '''
+                sh """
+                  docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                  docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                """
             }
         }
 
@@ -74,19 +48,32 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                      docker tag jenkins-demo:${BUILD_NUMBER} kranthireddy8563/jenkins-demo:${BUILD_NUMBER}
-                      docker tag jenkins-demo:${BUILD_NUMBER} kranthireddy8563/jenkins-demo:latest
-                      docker push kranthireddy8563/jenkins-demo:${BUILD_NUMBER}
-                      docker push kranthireddy8563/jenkins-demo:latest
+                    sh """
+                      echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                      docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                      docker push ${IMAGE_NAME}:latest
                       docker logout
-                    '''
+                    """
                 }
             }
         }
-=======
->>>>>>> faeed8f (updated files)
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                  kubectl set image deployment/jenkins-demo-deployment \
+                    jenkins-demo=${IMAGE_NAME}:${IMAGE_TAG}
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully"
+        }
+        failure {
+            echo "Pipeline failed"
+        }
     }
 }
-
