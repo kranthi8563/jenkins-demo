@@ -59,13 +59,18 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
+            environment {
+                KUBECONFIG = "${WORKSPACE}/kubeconfig"
+            }
             steps {
-                sh """
-                  kubectl set image deployment/jenkins-demo-deployment \
-                    jenkins-demo=${IMAGE_NAME}:${IMAGE_TAG}
-                """
+                sh '''
+                cp /tmp/kubeconfig-embedded.yaml kubeconfig
+                kubectl set image deployment/jenkins-demo-deployment \
+                    jenkins-demo=$IMAGE_NAME:$IMAGE_TAG
+                '''
             }
         }
+
     }
 
     post {
